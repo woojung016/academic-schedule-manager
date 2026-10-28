@@ -1,0 +1,16 @@
+[project]
+name = "academic-schedule-manager"
+version = "0.1.0"
+description = "대학생 과제 및 시험 일정 실시간 관리 프로그램"
+readme = "장우정_3주차_기획안작성.md"
+requires-python = ">=3.10"
+authors = [
+    { name = "장우정" }
+]
+dependencies = []
+
+[project.scripts]
+schedule-gui = "gui_main:main"
+
+[project.gui-scripts]
+schedule-manager = "gui_main:main"
