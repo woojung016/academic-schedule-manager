@@ -1,11 +1,11 @@
-"""대학생 과제 및 시험 관리 프로그램 (GUI 메인 실행 모듈)
-기획안(장우정_3주차_기획안작성.md) 요구사항 기반 구현
-"""
+import threading
 from datetime import datetime, timedelta
 import tkinter as tk
 from tkinter import messagebox, ttk
 
+from api_client import fetch_public_holidays
 from calendar_picker import CalendarPopup
+
 from schedule_model import (
     format_countdown_label,
     get_deadline_info,
@@ -13,8 +13,6 @@ from schedule_model import (
     parse_deadline,
     save_schedules,
 )
-
-
 class ScheduleManagerGUI:
     def __init__(self, root):
         self.root = root
@@ -103,6 +101,12 @@ class ScheduleManagerGUI:
         # 하단 툴바
         toolbar = ttk.Frame(body)
         toolbar.pack(fill="x", pady=(8, 2))
+        ttk.Button(
+            toolbar,
+            text="공휴일 조회",
+            command=self.show_holidays
+        ).pack(side="right", padx=3)
+
         self.var_hide_done = tk.BooleanVar(value=False)
         ttk.Checkbutton(toolbar, text="미완료만 보기", variable=self.var_hide_done, command=self.refresh_list).pack(side="left")
         ttk.Button(toolbar, text="새로고침", command=self.refresh_list).pack(side="right", padx=3)
@@ -111,6 +115,38 @@ class ScheduleManagerGUI:
 
         self.status_lbl = ttk.Label(body, text="", font=("맑은 고딕", 9), foreground="#555555")
         self.status_lbl.pack(fill="x", pady=(2, 0))
+
+    def show_holidays(self):
+        year = datetime.now().year
+
+        def display(holidays):
+            window = tk.Toplevel(self.root)
+            window.title(f"{year}년 대한민국 공휴일")
+            window.geometry("450x450")
+
+            text = tk.Text(window, font=("맑은 고딕", 11))
+            text.pack(fill="both", expand=True, padx=10, pady=10)
+
+            for holiday in holidays:
+                text.insert(
+                    "end",
+                    f"{holiday['date']}  {holiday['name']}\n"
+                )
+            text.config(state="disabled")
+
+        def worker():
+            try:
+                holidays = fetch_public_holidays(year)
+            except Exception as exc:
+                error = str(exc)
+                self.root.after(
+                    0,
+                    lambda: messagebox.showerror("API 오류", error)
+                )
+                return
+
+            self.root.after(0, lambda: display(holidays))
+        threading.Thread(target=worker, daemon=True).start()
 
     def _tick_second(self):
         """1초마다 마감일시 옆 라벨 및 테이블 실시간 남은 시간 갱신"""
